@@ -1,0 +1,197 @@
+{
+  "_说明": "商品池。由 md2json 从 docs/02_地图与商品.md 生成。",
+  "shop_types": {
+    "snack": {
+      "name": "🧋小吃奶茶",
+      "items": [
+        {
+          "name": "奶茶",
+          "price_min": 50,
+          "price_max": 200,
+          "time_min": 3,
+          "time_max": 5,
+          "rebate_min": 1.6,
+          "rebate_max": 1.8
+        },
+        {
+          "name": "小吃",
+          "price_min": 200,
+          "price_max": 800,
+          "time_min": 4,
+          "time_max": 6,
+          "rebate_min": 1.65,
+          "rebate_max": 1.85
+        },
+        {
+          "name": "夜宵",
+          "price_min": 800,
+          "price_max": 3000,
+          "time_min": 5,
+          "time_max": 8,
+          "rebate_min": 1.7,
+          "rebate_max": 1.9
+        }
+      ]
+    },
+    "digital": {
+      "name": "📱数码手机",
+      "items": [
+        {
+          "name": "手机",
+          "price_min": 3000,
+          "price_max": 10000,
+          "time_min": 7,
+          "time_max": 11,
+          "rebate_min": 1.8,
+          "rebate_max": 2
+        },
+        {
+          "name": "电脑",
+          "price_min": 10000,
+          "price_max": 30000,
+          "time_min": 8,
+          "time_max": 12,
+          "rebate_min": 1.85,
+          "rebate_max": 2.05
+        },
+        {
+          "name": "数码套装",
+          "price_min": 30000,
+          "price_max": 80000,
+          "time_min": 9,
+          "time_max": 13,
+          "rebate_min": 1.9,
+          "rebate_max": 2.1
+        }
+      ]
+    },
+    "gold": {
+      "name": "💍金店珠宝",
+      "items": [
+        {
+          "name": "金饰",
+          "price_min": 30000,
+          "price_max": 120000,
+          "time_min": 8,
+          "time_max": 12,
+          "rebate_min": 1.85,
+          "rebate_max": 2.05
+        },
+        {
+          "name": "名表",
+          "price_min": 100000,
+          "price_max": 400000,
+          "time_min": 9,
+          "time_max": 13,
+          "rebate_min": 2.05,
+          "rebate_max": 2.25
+        },
+        {
+          "name": "珠宝",
+          "price_min": 300000,
+          "price_max": 900000,
+          "time_min": 10,
+          "time_max": 14,
+          "rebate_min": 2.1,
+          "rebate_max": 2.3
+        }
+      ]
+    },
+    "mall": {
+      "name": "🛍️商超百货",
+      "items": [
+        {
+          "name": "家电",
+          "price_min": 20000,
+          "price_max": 60000,
+          "time_min": 8,
+          "time_max": 12,
+          "rebate_min": 1.85,
+          "rebate_max": 2
+        },
+        {
+          "name": "奢品",
+          "price_min": 150000,
+          "price_max": 500000,
+          "time_min": 9,
+          "time_max": 13,
+          "rebate_min": 2.05,
+          "rebate_max": 2.3
+        },
+        {
+          "name": "家私",
+          "price_min": 400000,
+          "price_max": 1200000,
+          "time_min": 10,
+          "time_max": 14,
+          "rebate_min": 2.1,
+          "rebate_max": 2.35
+        }
+      ]
+    },
+    "car": {
+      "name": "🚗汽车4S店",
+      "items": [
+        {
+          "name": "代步车",
+          "price_min": 300000,
+          "price_max": 800000,
+          "time_min": 10,
+          "time_max": 14,
+          "rebate_min": 2.05,
+          "rebate_max": 2.25
+        },
+        {
+          "name": "豪车",
+          "price_min": 800000,
+          "price_max": 2500000,
+          "time_min": 11,
+          "time_max": 15,
+          "rebate_min": 2.15,
+          "rebate_max": 2.4
+        },
+        {
+          "name": "跑车",
+          "price_min": 2000000,
+          "price_max": 6000000,
+          "time_min": 12,
+          "time_max": 15,
+          "rebate_min": 2.25,
+          "rebate_max": 2.5
+        }
+      ]
+    },
+    "estate": {
+      "name": "🏢地产门面",
+      "items": [
+        {
+          "name": "门面",
+          "price_min": 2000000,
+          "price_max": 8000000,
+          "time_min": 11,
+          "time_max": 15,
+          "rebate_min": 2.4,
+          "rebate_max": 2.7
+        },
+        {
+          "name": "商铺",
+          "price_min": 8000000,
+          "price_max": 25000000,
+          "time_min": 12,
+          "time_max": 15,
+          "rebate_min": 2.5,
+          "rebate_max": 2.8
+        },
+        {
+          "name": "楼盘",
+          "price_min": 20000000,
+          "price_max": 60000000,
+          "time_min": 12,
+          "time_max": 15,
+          "rebate_min": 2.6,
+          "rebate_max": 2.9
+        }
+      ]
+    }
+  }
+}

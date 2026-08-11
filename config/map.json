@@ -1,0 +1,77 @@
+{
+  "_说明": "地图。由 md2json 从 docs/02_地图与商品.md 生成。",
+  "start_pos": "home",
+  "districts": {
+    "home": {
+      "name": "家/小区",
+      "shops": [
+        "snack"
+      ]
+    },
+    "street": {
+      "name": "商业街",
+      "shops": [
+        "snack",
+        "digital"
+      ]
+    },
+    "mallC": {
+      "name": "购物中心",
+      "shops": [
+        "digital",
+        "gold",
+        "mall"
+      ]
+    },
+    "autoZone": {
+      "name": "城郊车市",
+      "shops": [
+        "car",
+        "mall"
+      ]
+    },
+    "cbd": {
+      "name": "CBD金融区",
+      "shops": [
+        "estate"
+      ]
+    }
+  },
+  "distance_matrix": {
+    "home": {
+      "home": 0,
+      "street": 8,
+      "mallC": 18,
+      "autoZone": 40,
+      "cbd": 30
+    },
+    "street": {
+      "home": 8,
+      "street": 0,
+      "mallC": 12,
+      "autoZone": 35,
+      "cbd": 22
+    },
+    "mallC": {
+      "home": 18,
+      "street": 12,
+      "mallC": 0,
+      "autoZone": 28,
+      "cbd": 16
+    },
+    "autoZone": {
+      "home": 40,
+      "street": 35,
+      "mallC": 28,
+      "autoZone": 0,
+      "cbd": 34
+    },
+    "cbd": {
+      "home": 30,
+      "street": 22,
+      "mallC": 16,
+      "autoZone": 34,
+      "cbd": 0
+    }
+  }
+}

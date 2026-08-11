@@ -1,0 +1,20 @@
+{
+  "_说明": "全局经济常量与贷款/信用/破产参数。由 md2json 从 docs/01_经济与数值.md 生成。",
+  "time": {
+    "total_minutes": 480,
+    "skip_cost": 5,
+    "sign_cost": 2
+  },
+  "start_cash": 10000,
+  "free_refresh": 3,
+  "loan": {
+    "target_max_ratio": 0.8,
+    "main_asset_mult": 4,
+    "approve_threshold_ratio": 0.7
+  },
+  "credit": {
+    "warn_leverage": 3,
+    "downgrade_leverage": 5,
+    "repay_window_minutes": 90
+  }
+}

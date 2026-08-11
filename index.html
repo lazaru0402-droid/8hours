@@ -97,7 +97,8 @@
 </style>
 </head>
 <body>
-<div id="app">
+<div id="sceneBg" style="position:fixed;top:0;left:0;width:100%;height:100%;background-size:cover;background-position:center;opacity:0.25;z-index:0;transition:background-image 0.8s ease;pointer-events:none"></div>
+<div id="app" style="position:relative;z-index:1">
   <div id="hud">
     <div class="hud-row">
       <div class="cash" id="cash">¥0<small> 现金</small></div>
@@ -112,187 +113,13 @@
   <div id="actions">
     <button class="btn refresh" id="btnRefresh">🔄 换一批 (<span id="refreshLeft">3</span>)</button>
     <button class="btn" id="btnRest" style="display:none">⏳ 消磨时间(−5分)</button>
-    <button class="btn" id="btnLoan" style="display:none;font-size:12px">🏦 主动贷款</button>
+    
     <button class="btn" id="btnExport" style="font-size:12px">📊 导出本局日志</button>
   </div>
 </div>
 <div class="toast" id="toast"></div>
 
-<script>
-window.__EMBEDDED_CONFIG__ = {"economy": {"_说明": "全局经济常量与贷款/信用/破产参数。由 md2json 从 docs/01_经济与数值.md 生成。", "time": {"total_minutes": 480, "skip_cost": 5, "sign_cost": 2}, "start_cash": 10000, "free_refresh": 3, "loan": {"target_max_ratio": 0.8, "main_asset_mult": 4, "approve_threshold_ratio": 0.7}, "credit": {"warn_leverage": 3, "downgrade_leverage": 5, "repay_window_minutes": 90}}, "shops": {"_说明": "商品池。由 md2json 从 docs/02_地图与商品.md 生成。", "shop_types": {"snack": {"name": "🧋小吃奶茶", "items": [{"name": "奶茶", "price_min": 50, "price_max": 200, "time_min": 3, "time_max": 5, "rebate_min": 1.6, "rebate_max": 1.8}, {"name": "小吃", "price_min": 200, "price_max": 800, "time_min": 4, "time_max": 6, "rebate_min": 1.65, "rebate_max": 1.85}, {"name": "夜宵", "price_min": 800, "price_max": 3000, "time_min": 5, "time_max": 8, "rebate_min": 1.7, "rebate_max": 1.9}]}, "digital": {"name": "📱数码手机", "items": [{"name": "手机", "price_min": 3000, "price_max": 10000, "time_min": 7, "time_max": 11, "rebate_min": 1.8, "rebate_max": 2}, {"name": "电脑", "price_min": 10000, "price_max": 30000, "time_min": 8, "time_max": 12, "rebate_min": 1.85, "rebate_max": 2.05}, {"name": "数码套装", "price_min": 30000, "price_max": 80000, "time_min": 9, "time_max": 13, "rebate_min": 1.9, "rebate_max": 2.1}]}, "gold": {"name": "💍金店珠宝", "items": [{"name": "金饰", "price_min": 30000, "price_max": 120000, "time_min": 8, "time_max": 12, "rebate_min": 1.85, "rebate_max": 2.05}, {"name": "名表", "price_min": 100000, "price_max": 400000, "time_min": 9, "time_max": 13, "rebate_min": 2.05, "rebate_max": 2.25}, {"name": "珠宝", "price_min": 300000, "price_max": 900000, "time_min": 10, "time_max": 14, "rebate_min": 2.1, "rebate_max": 2.3}]}, "mall": {"name": "🛍️商超百货", "items": [{"name": "家电", "price_min": 20000, "price_max": 60000, "time_min": 8, "time_max": 12, "rebate_min": 1.85, "rebate_max": 2}, {"name": "奢品", "price_min": 150000, "price_max": 500000, "time_min": 9, "time_max": 13, "rebate_min": 2.05, "rebate_max": 2.3}, {"name": "家私", "price_min": 400000, "price_max": 1200000, "time_min": 10, "time_max": 14, "rebate_min": 2.1, "rebate_max": 2.35}]}, "car": {"name": "🚗汽车4S店", "items": [{"name": "代步车", "price_min": 300000, "price_max": 800000, "time_min": 10, "time_max": 14, "rebate_min": 2.05, "rebate_max": 2.25}, {"name": "豪车", "price_min": 800000, "price_max": 2500000, "time_min": 11, "time_max": 15, "rebate_min": 2.15, "rebate_max": 2.4}, {"name": "跑车", "price_min": 2000000, "price_max": 6000000, "time_min": 12, "time_max": 15, "rebate_min": 2.25, "rebate_max": 2.5}]}, "estate": {"name": "🏢地产门面", "items": [{"name": "门面", "price_min": 2000000, "price_max": 8000000, "time_min": 11, "time_max": 15, "rebate_min": 2.4, "rebate_max": 2.7}, {"name": "商铺", "price_min": 8000000, "price_max": 25000000, "time_min": 12, "time_max": 15, "rebate_min": 2.5, "rebate_max": 2.8}, {"name": "楼盘", "price_min": 20000000, "price_max": 60000000, "time_min": 12, "time_max": 15, "rebate_min": 2.6, "rebate_max": 2.9}]}}}, "map": {"_说明": "地图。由 md2json 从 docs/02_地图与商品.md 生成。", "start_pos": "home", "districts": {"home": {"name": "家/小区", "shops": ["snack"]}, "street": {"name": "商业街", "shops": ["snack", "digital"]}, "mallC": {"name": "购物中心", "shops": ["digital", "gold", "mall"]}, "autoZone": {"name": "城郊车市", "shops": ["car", "mall"]}, "cbd": {"name": "CBD金融区", "shops": ["estate"]}}, "distance_matrix": {"home": {"home": 0, "street": 8, "mallC": 18, "autoZone": 40, "cbd": 30}, "street": {"home": 8, "street": 0, "mallC": 12, "autoZone": 35, "cbd": 22}, "mallC": {"home": 18, "street": 12, "mallC": 0, "autoZone": 28, "cbd": 16}, "autoZone": {"home": 40, "street": 35, "mallC": 28, "autoZone": 0, "cbd": 34}, "cbd": {"home": 30, "street": 22, "mallC": 16, "autoZone": 34, "cbd": 0}}}, "transport": {"_说明": "交通与途中事件。由 md2json 从 docs/03_交通与事件.md 生成。", "transports": [{"key": "walk", "name": "🚶 走路", "mult": 1, "cost": 0, "sign": false, "evt": 0.45, "wait": [0, 0], "sub": "免费·无需等待·但路上事件多"}, {"key": "taxi", "name": "🚕 打车", "mult": 0.5, "cost": 8, "sign": true, "evt": 0.05, "wait": [1, 8], "sub": "快·可车上签约·需等车1-8分·几乎无事件"}, {"key": "drive", "name": "🚗 自驾", "mult": 0.45, "cost": 3, "sign": false, "evt": 0.15, "wait": [0, 0], "sub": "快·专心开车不能签约", "needCar": true}, {"key": "rail", "name": "🚄 高铁", "mult": 0.3, "cost": 25, "sign": true, "evt": 0, "wait": [2, 6], "sub": "最快·跨区首选·可签约·准点不堵", "minDist": 20}], "road_events": [{"w": 20, "dt": [8, 18], "cash": 0, "msg": "🚧 堵车！多花{dt}分钟"}, {"w": 12, "dt": [-8, -3], "cash": 0, "msg": "🟢 一路绿灯，提前{dt}分到"}, {"w": 8, "dt": [2, 5], "cash": [200, 2000], "msg": "💸 路边捡到 ¥{cash}！"}, {"w": 6, "dt": [3, 7], "cash": 0, "msg": "🌧️ 下雨绕路，多花{dt}分钟"}, {"w": 5, "dt": [1, 3], "cash": [-3000, -500], "msg": "🎫 吃了张罚单 -¥{cash}"}, {"w": 4, "dt": [0, 0], "cash": [500, 5000], "msg": "🎁 偶遇快闪店，下单享折扣返现", "bonus": true}]}, "bank": {"_说明": "银行系统。由 md2json 从 docs/04_银行与谈判.md 生成。", "bank_deals": [{"name": "代收房租", "est_min": 1000000, "est_max": 4000000, "transfer_min": 20, "transfer_max": 30, "rebate_min": 2.1, "rebate_max": 2.4}, {"name": "店铺盘活转手", "est_min": 3000000, "est_max": 12000000, "transfer_min": 26, "transfer_max": 38, "rebate_min": 2.2, "rebate_max": 2.5}, {"name": "收购店铺", "est_min": 10000000, "est_max": 40000000, "transfer_min": 34, "transfer_max": 48, "rebate_min": 2.4, "rebate_max": 2.7}, {"name": "收购连锁门店", "est_min": 30000000, "est_max": 120000000, "transfer_min": 40, "transfer_max": 56, "rebate_min": 2.5, "rebate_max": 2.8}, {"name": "收购游艇", "est_min": 100000000, "est_max": 500000000, "transfer_min": 45, "transfer_max": 68, "rebate_min": 2.7, "rebate_max": 3}, {"name": "收购豪宅庄园", "est_min": 400000000, "est_max": 2000000000, "transfer_min": 60, "transfer_max": 88, "rebate_min": 2.9, "rebate_max": 3.3}, {"name": "科技公司股份", "est_min": 1500000000, "est_max": 8000000000, "transfer_min": 70, "transfer_max": 100, "rebate_min": 3, "rebate_max": 3.4}, {"name": "上市公司控股权", "est_min": 6000000000, "est_max": 40000000000, "transfer_min": 85, "transfer_max": 120, "rebate_min": 3.1, "rebate_max": 3.5}, {"name": "城市综合体地皮", "est_min": 30000000000, "est_max": 150000000000, "transfer_min": 95, "transfer_max": 130, "rebate_min": 3.2, "rebate_max": 3.6}, {"name": "跨国集团并购", "est_min": 100000000000, "est_max": 600000000000, "transfer_min": 110, "transfer_max": 150, "rebate_min": 3.3, "rebate_max": 3.8}, {"name": "港口矿业权", "est_min": 400000000000, "est_max": 3000000000000, "transfer_min": 120, "transfer_max": 160, "rebate_min": 3.4, "rebate_max": 4}], "vip": [{"name": "普通人", "unlock": 0, "slots": 1}, {"name": "🥇VIP", "unlock": 100000000, "slots": 4}, {"name": "🖤黑卡", "unlock": 500000000, "slots": 6}, {"name": "👑传奇", "unlock": 5000000000, "slots": 8}], "bank_calls": [{"threshold": 100000000, "tier": "🥇VIP", "slots": 4, "title": "私人银行来电"}, {"threshold": 500000000, "tier": "🖤黑卡", "slots": 6, "title": "环球私行来电"}, {"threshold": 5000000000, "tier": "👑传奇", "slots": 8, "title": "央行级专属通道"}], "sellers": {"company": {"label": "🏢 正规公司", "cap_min": 1.1, "cap_max": 1.5, "ask_min": 1, "ask_max": 1.25, "flake_chance": 0}, "personal": {"label": "🧍 个人卖家", "cap_min": 1.5, "cap_max": 2, "ask_min": 0.9, "ask_max": 1.35, "flake_chance": 0.35}, "distressed": {"label": "🕶️ 急售/破产清算", "cap_min": 3, "cap_max": 4, "ask_min": 0.7, "ask_max": 1.05, "flake_chance": 0}}}};
-</script>
-<script>
-/* ============================================================
- *  对话文档  dialogue.js
- *  ————————————————————————————————————————————————
- *  这是《消费返现系统》所有游戏内对话的文案库。
- *  【怎么改游戏对话】：直接改这个文件里的文字即可，不用碰 HTML/逻辑。
- *
- *  语法说明：
- *   · text 里可用 <span class="hl">高亮字</span> 做金色高亮。
- *   · \n 换行；\n\n 空一行。
- *   · {占位符} 会被游戏运行时替换成实际数值，可用的占位符见每段注释。
- *   · choices 是选项按钮：label=按钮字，sub=按钮下的小灰字，
- *     next=点击后跳到哪段对话(填对话key)，action=触发的游戏动作(见下方 ACTIONS 表)。
- *   · 谈判类对话文案在 NEGOTIATION 里，按卖家类型分组，每类含"开场介绍/各种反馈"。
- * ============================================================ */
-
-const DIALOGUE = {
-
-  /* ========== 一、开场：返现系统绑定（主流程）========== */
-  intro_start: {
-    head: '未知信号', avatar: '📡', speaker: '？？？',
-    text: '滴——\n检测到符合条件的宿主。\n\n<span class="hl">「消费返现系统」</span>申请绑定。\n是否激活？',
-    choices: [
-      { label: '⚡ 激活系统', primary: true, sub: '开启你的暴富人生', next: 'intro_bound' },
-      { label: '……这是诈骗吧？', sub: '（其实你没得选）', next: 'intro_threat' },
-    ]
-  },
-  intro_threat: {
-    head: '未知信号', avatar: '📡', speaker: '系统',
-    text: '检测到宿主犹豫。\n\n提示：<span class="hl">你已欠花呗 8 万元。</span>\n拒绝将移交催收。\n\n……再问一次，是否激活？',
-    choices: [
-      { label: '⚡ 那必须激活！', primary: true, next: 'intro_bound' },
-    ]
-  },
-  intro_bound: {
-    head: '消费返现系统 v1.0', avatar: '💰', speaker: '系统',
-    // 占位符：{start_cash}=开局资金  {total_time}=总时间(分)
-    text: '绑定成功！\n\n核心功能：<span class="hl">消费即返现。</span>\n你花出去的每一分钱，都会以 <span class="hl">N 倍</span>返还。\n\n已为你注入启动资金 <span class="hl">{start_cash}</span>。\n\n规则：你有 <span class="hl">{total_time} 分钟</span>。移动、消费都要花时间，时间用完即结算。账上钱越多，排名越高。',
-    choices: [
-      { label: '💸 开始花钱！', primary: true, action: 'START_GAME' },
-    ]
-  },
-
-  /* ========== 二、银行来电（资产达标触发，主流程）========== */
-  // 占位符：{threshold}=达标金额  {tier}=VIP等级名  {slots}=总并行槽位  {parallel}=可并行项数(slots-1)
-  bank_call_first: {
-    head: '📞 {title}', avatar: '🏦', speaker: '私人银行客户经理',
-    text: '尊敬的客户，您好！\n\n监测到您的资产已突破 <span class="hl">{threshold}</span>，恭喜晋升 <span class="hl">{tier}</span>！\n\n我行为您配备<span class="hl">专属团队</span>：您只需委托授权，我们即可为您<span class="hl">并行代办大宗收购</span>——您腾出手做别的，收购在后台跑，到点自动返现。\n\n当前可同时进行 <span class="hl">{parallel} 项</span>代办。',
-    choices: [
-      { label: '✍️ 接受，开通私行服务', primary: true, sub: '解锁 {tier} · {slots} 线并行', action: 'ACCEPT_BANK' },
-    ]
-  },
-  bank_call_upgrade: {
-    head: '📞 {title}', avatar: '🏦', speaker: '私人银行客户经理',
-    text: '{tier} 客户您好！\n\n您的资产已达 <span class="hl">{threshold}</span>，私行服务再次升级！\n\n并行代办名额提升至 <span class="hl">{parallel} 项</span>，更多顶级收购标的已解锁。',
-    choices: [
-      { label: '✍️ 知道了', primary: true, action: 'ACCEPT_BANK' },
-    ]
-  },
-
-  /* ========== 三、银行委托台：选标的（主流程）========== */
-  // 占位符：{tier} {parallel_left}=剩余可委托项
-  bank_desk: {
-    head: '🏦 私人银行 · 委托台', avatar: '🏦', speaker: '客户经理',
-    text: '{tier} 客户，可再委托 <span class="hl">{parallel_left}</span> 项。\n\n选定标的后我行会安排卖家与您<span class="hl">当面谈判</span>。谈成后签约付款——账上需备足款项，否则视为违约。\n\n请选择要收购的标的：',
-    // choices 由游戏动态生成（每个标的一个按钮），此处仅定义兜底/取消项
-    cancelLabel: '先不办，回去'
-  },
-};
-
-/* ============================================================
- *  谈判对话库 NEGOTIATION
- *  三类卖家，每类含：intro(开场介绍) + 各种出价反馈文案。
- *  reaction 文案占位符：{offer}=你的出价  {est_low}~{est_high}=评估区间
- *  ————————————————————————————————————————————————
- *  谈判规则（供参考，逻辑在游戏代码里）：
- *   · 出价范围＝评估价 0.5×~5×（滑条）。
- *   · 出价目的是【省时间】不是省钱：命中卖家"满意带"→当轮秒成交；
- *     没命中→磨回合(耗时)或直接告吹(永久失去这单)。
- *   · 三类卖家满意逻辑：
- *      公司(company)：理性。出价≥评估中位就干脆成交；偏低要磨几轮；过低(<0.8×)也肯谈但费时。
- *      个人(personal)：要面子。出价过低(<1.0×)→觉得被看扁→【当场告吹，永久失去】；给到体面价(≥1.2×)秒成。
- *      急售(distressed)：缺钱。几乎什么价都肯卖，给高位则你多花钱换多返现，随意。
- * ============================================================ */
-const NEGOTIATION = {
-
-  company: {
-    label: '🏢 正规公司', reason: '集团战略调整，回笼资金',
-    tip: '正规公司讲规矩、走流程，出价太离谱反而会引起合规怀疑——出价宜稳。',
-    intro: '您好，我代表出售方集团。\n\n这处 <span class="hl">{asset}</span> 因集团战略调整对外转让，手续齐全、干净利落。\n\n我们的报价是 <span class="hl">{ask}</span>。\n您出个价，合适我们就走流程。',
-    accept: '爽快！{offer} 成交，这就签合同。合作愉快。',
-    low: '这个价……偏低了些。集团这边要走内部审批，得容我们再议议。',
-    verylow: '恕难从命，这价格没法向董事会交代。要不您再考虑考虑？',
-    high: '您痛快，那我们也不含糊，立刻成交！',
-    // 出价远高于合理范围 → 公司起疑退缩（永久失单）
-    toohigh: '……您出这么高，反倒让我们不安。集团有合规审查，这笔交易恕不能接，就此作罢。',
-  },
-
-  personal: {
-    label: '🧍 个人卖家', reason: '急用钱周转，但很在意体面',
-    tip: '个人卖家要面子：太低会翻脸，给个体面的高价他很受用，容错较宽。',
-    intro: '这是我名下的 <span class="hl">{asset}</span>，跟了我好些年，感情深着呢。\n\n最近手头周转紧，才忍痛出手。\n\n我开价 <span class="hl">{ask}</span>——您是懂行的，给个厚道价？',
-    accept: '痛快人！{offer} 就 {offer}，交给您我放心。签吧！',
-    low: '哎，您这价压得我心里不是滋味……再添点儿？',
-    insult: '您这是打发要饭的呢？！这买卖不做了，告辞！',
-    high: '您真是敞亮人！冲您这份尊重，成交！',
-    // 出价高得离谱 → 个人卖家犯嘀咕退缩（永久失单）
-    toohigh: '您出这么高……是不是这房子有什么我不知道的名堂？我得再想想，先不卖了。',
-  },
-
-  distressed: {
-    label: '🕶️ 急售 / 破产清算', reason: '债主逼上门，等钱救命',
-    tip: '急售的人只求快，你出多高他都笑纳，几乎不会退缩——放心冲高价。',
-    intro: '兄弟，救命的买卖！\n\n这套 <span class="hl">{asset}</span> 我今天必须出手，债主就在门口……\n\n评估 <span class="hl">{est_low} ~ {est_high}</span>，你给多少我都卖，快！',
-    accept: '成！{offer} 拿走，谢谢您嘞，救了我一命！',
-    low: '……行行行，这价我也认了，谁让我等着用钱呢。成交！',
-    verylow: '大哥，再低我可就真活不成了，好歹让我周转周转啊……（勉强成交）',
-    high: '您……您这是雪中送炭啊！这就过户！',
-    // 急售几乎不会退缩，上限极高；真出到天价才作罢
-    toohigh: '这……这数儿太吓人了，我反倒怕惹祸上身，还是算了吧。',
-  },
-};
-
-/* ============================================================
- *  ACTIONS 表（选项 action 字段可填的值，游戏代码识别这些指令）：
- *   START_GAME    —— 关闭对话，进入游戏主界面
- *   ACCEPT_BANK   —— 接受银行来电/升级，随后打开委托台
- * ============================================================ */
-
-if (typeof window !== 'undefined') { window.DIALOGUE = DIALOGUE; window.NEGOTIATION = NEGOTIATION; }
-
-/* ============================================================
- *  [购物对话v1] 商店店员文案
- *  ————————————————————————————————————————————————
- *  到店选商品后弹出的购物对话。{item}=商品名, {price}=单价。
- *  改这里的文案即可，不用碰逻辑。稳定后可扩展成按商店类型区分的多套文案。
- * ============================================================ */
-const SHOP_DIALOGUE = {
-  // 每个店铺进店时店员说的话(店员均为18-28岁女性,按岗位印象设计)。{shop}=店名。
-  // greet=进店招呼(数组随机取一句), buy_intro=点某商品后购物对话里的开场({item}商品名 {price}单价)
-  snack: {   // 🧋奶茶店 —— 元气甜妹店员
-    greet: ['欢迎光临～今天想喝点什么呀？☕','哥哥/姐姐好眼光～这款超多人回购的！','现做现打，稍等两分钟就好啦～'],
-    buy_intro: '这款 {item} 单价 {price}，要几杯呀？多买几杯打包带走也方便～',
-  },
-  digital: {  // 📱数码店 —— 干练店员
-    greet: ['欢迎光临～新款刚到，要不要上手体验一下？','这边旗舰机现货充足，需要我帮您介绍配置吗？','分期免息活动进行中哦，看好哪款随时叫我～'],
-    buy_intro: '{item}，官方标价 {price}。要几台？多台的话我给您走个团购价流程～',
-  },
-  gold: {  // 💍金饰珠宝店 —— 优雅知性店员
-    greet: ['欢迎光临～我们家都是足金足色，验货开票齐全的。','这位贵宾，今天是看投资金还是看款式呢？','手工费本周有优惠，喜欢的话可以试戴看看～'],
-    buy_intro: '这件 {item}，柜台价 {price}。要几件？多件我帮您登记会员积分～',
-  },
-  mall: {  // 🛍️商超百货 —— 热情店员
-    greet: ['欢迎光临～全场满额有赠品哦！','需要什么我帮您找，仓库有货随时调～','这款是本季爆款，好多顾客都成套带的～'],
-    buy_intro: '{item} 标价 {price}。要几件？大件我们包送货上门～',
-  },
-  car: {  // 🚗汽车4S店 —— 专业销售
-    greet: ['欢迎光临～这边请，先看看展厅这几款主推车型？','您是自用还是收藏呢？我帮您匹配合适的～','今天订车的话，上牌和保险我们一条龙帮您办～'],
-    buy_intro: '这款 {item}，裸车价 {price}。要几辆？店里现车不多，多了得等调货～',
-  },
-  estate: {  // 🏢地产门面 —— 干练置业顾问
-    greet: ['先生/女士好，这边是我们的核心地段房源～','投资自用都合适，我先带您看看沙盘？','今天诚意下定的话，可以帮您申请额外折扣～'],
-    buy_intro: '这套 {item}，挂牌价 {price}。要几套？每套都要单独网签办手续哦～',
-  },
-  // 兜底(未匹配到的店类型)
-  default: {
-    greet: ['欢迎光临～随便看看！'],
-    buy_intro: '这款 {item}，单价 {price}，要几件？',
-  },
-};
-
-</script>
+<script src="dialogue.js"></script>
 <script>
 // ========== 全局配置 ==========
 let TOTAL_TIME=480, SKIP_COST=5, FREE_REFRESH=3, SIGN_COST=2, START_CASH=10000;
@@ -384,7 +211,35 @@ let VIP=[{name:'普通人',u:0,slots:1},{name:'🥉黄金VIP',u:2000000,slots:2}
 let S={cash:START_CASH,peak:START_CASH,time:TOTAL_TIME,refresh:FREE_REFRESH,pos:'home',lanes:[],over:false,log:[],turn:0,mode:'dest',dest:null,shopCards:[],bankCalled:{},lastMoveTo:null,hasCar:false,bankSearches:[],transport:null,debt:0,assets:[],negotiating:false,curShop:null,loans:[],credit:'normal',repayTimer:null,_loanId:0,bankrupt:false};
 // ===== 贷款v2 参数 =====
 let LOAN_TARGET_MAX=0.8;   // 标的贷款上限=成交价×80%
-let LOAN_MAIN_MULT=4;      // 主界面主动贷款：总负债≤总资产×4
+let LOAN_MAIN_MULT=4;      
+// ========== 银行VIP服务菜单 ==========
+window.openBankMenu=function(){
+  if(S.over)return;
+  const vip=curVip();
+  if(vip.slots<=1){toast('资产还不够，银行还没来电',true);return;}
+  const totalTeams=S.lanes.reduce((s,l)=>s+(l.teams||1),0)+S.bankSearches.length+S.loans.length;
+  const idle=vip.slots-totalTeams;
+  const old=document.getElementById('dlgOverlay');if(old)old.remove();
+  const ov=document.createElement('div');ov.className='overlay';ov.id='dlgOverlay';
+  ov.innerHTML=`<div class="dlg-modal">
+    <div class="dlg-head"><span class="dlg-avatar">🏦</span><span>${vip.name} · 银行VIP服务</span></div>
+    <div class="dlg-body"><div class="dlg-text">尊敬的${vip.name}客户，您有 <span class="hl">${idle}/${vip.slots}</span> 队银行团队空闲。请选择需要的服务：</div></div>
+    <div style="padding:0 16px 16px">
+      <div class="card" onclick="closeDialogue();openBankDesk();" style="margin-bottom:10px;cursor:pointer">
+        <div class="name">🔍 寻找收购标的</div>
+        <div style="font-size:12px;color:var(--dim);margin-top:4px">委托银行团队在市场上寻找大宗资产收购机会。设定目标价位后，团队外出寻货，找到后带回给您谈判。</div>
+      </div>
+      <div class="card" onclick="closeDialogue();openLoanDesk();" style="margin-bottom:10px;cursor:pointer">
+        <div class="name">💰 贷款业务</div>
+        <div style="font-size:12px;color:var(--dim);margin-top:4px">主动贷款备好现金，额度≤净资产×4。<br>⚠️ 每笔贷款占用1队人手 · 免息但计负债 · 杠杆率超${CREDIT_DOWNGRADE}倍触发催收</div>
+      </div>
+    </div>
+    <div class="dlg-choices"><button class="dlg-choice" onclick="closeDialogue()">暂不需要</button></div>
+  </div>`;
+  document.body.appendChild(ov);
+};
+
+// 主界面主动贷款：总负债≤总资产×4
 let CREDIT_WARN=3;         // 账面杠杆率>3 黄色预警
 let CREDIT_DOWNGRADE=5;    // 账面杠杆率>5 信用降级+还款倒计时
 let REPAY_WINDOW=90;       // 降级后还款倒计时（分钟）≥1个加速过户周期
@@ -459,10 +314,12 @@ function checkAchievements(netWorth, isBankrupt){
   const newlyUnlocked=[];
   if(isBankrupt){
     if(unlockAch('bankrupt')) newlyUnlocked.push(ACHIEVEMENTS.find(a=>a.id==='bankrupt'));
+  } else {
+    // 只解锁当前净资产所在的最高档(不累加低档)
+    const tiers=ACHIEVEMENTS.filter(a=>a.threshold).sort((a,b)=>b.threshold-a.threshold);
+    const hit=tiers.find(a=>netWorth>=a.threshold);
+    if(hit && unlockAch(hit.id)) newlyUnlocked.push(hit);
   }
-  ACHIEVEMENTS.filter(a=>a.threshold).forEach(a=>{
-    if(netWorth>=a.threshold && unlockAch(a.id)) newlyUnlocked.push(a);
-  });
   return newlyUnlocked;
 }
 function renderAchievements(newlyUnlocked){
@@ -481,6 +338,77 @@ function renderAllAchievements(){
   });
   h+='</div></div>';
   return h;
+}
+
+
+// ========== BGM系统（三段按剩余时间切换）==========
+const BGM_TRACKS=['music/01.mp3','music/02.mp3','music/03.mp3'];
+let bgmAudio=null, bgmIdx=-1, bgmFading=false;
+function initBGM(){
+  bgmAudio=new Audio();
+  bgmAudio.loop=true;
+  bgmAudio.volume=0.3;
+  // 浏览器要求用户交互后才能播放——首次点击时启动
+  const startBGM=()=>{
+    document.removeEventListener('click',startBGM);
+    updateBGM(true);
+  };
+  document.addEventListener('click',startBGM);
+}
+function getBGMIndex(){
+  if(S.time>320) return 0;      // 前期(480~320): 舒缓雀跃
+  if(S.time>120) return 1;      // 中期(320~120): 加速兴奋
+  return 2;                     // 后期(120~0): 极致紧迫
+}
+function updateBGM(force){
+  const idx=getBGMIndex();
+  if(idx===bgmIdx && !force) return;
+  if(bgmFading) return;
+  bgmFading=true;
+  // 淡出当前
+  const fadeOut=()=>{
+    if(bgmAudio.volume>0.02){ bgmAudio.volume=Math.max(0,bgmAudio.volume-0.03); setTimeout(fadeOut,50); }
+    else { bgmAudio.pause(); bgmAudio.src=BGM_TRACKS[idx]; bgmAudio.volume=0; bgmAudio.play().catch(()=>{}); bgmIdx=idx; fadeIn(); }
+  };
+  const fadeIn=()=>{
+    if(bgmAudio.volume<0.3){ bgmAudio.volume=Math.min(0.3,bgmAudio.volume+0.02); setTimeout(fadeIn,60); }
+    else { bgmFading=false; }
+  };
+  if(bgmIdx<0||force){ bgmAudio.src=BGM_TRACKS[idx];bgmAudio.volume=0;bgmAudio.play().catch(()=>{});bgmIdx=idx;fadeIn(); }
+  else fadeOut();
+}
+
+
+// ========== 场景背景图 ==========
+const SCENE_BG={
+  // 地块
+  home:'picture/家小区.png',
+  street:'picture/商业街.png',
+  mallC:'picture/购物中心.png',
+  autoZone:'picture/城郊车市.png',
+  cbd:'picture/CBD 金融区.png',
+  // 店铺
+  snack:'picture/奶茶店.png',
+  digital:'picture/数码店.png',
+  gold:'picture/金店珠宝.png',
+  mall:'picture/奢品店.png',
+  car:'picture/4s店.png',
+  estate:'picture/地产门面.png',
+  // 特殊
+  bank:'picture/银行 VIP 贵宾室.png',
+  bankrupt:'picture/破产结算.png',
+  win:'picture/胜利结算.png',
+};
+function updateSceneBG(){
+  let bg='';
+  if(S.over && S.bankrupt) bg=SCENE_BG.bankrupt;
+  else if(S.over) bg=SCENE_BG.win;
+  else if(S.mode==='shop' && S.curShop) bg=SCENE_BG[S.curShop]||'';
+  else if(S.mode==='shopList' && S.dest) bg=SCENE_BG[S.dest]||'';
+  else if(S.dest) bg=SCENE_BG[S.dest]||'';
+  else bg=SCENE_BG.home;
+  const el=document.getElementById('sceneBg');
+  if(el) el.style.backgroundImage=bg?`url('${bg}')`:'none';
 }
 
 // ========== 日志 ==========
@@ -512,6 +440,7 @@ window.exportLiveLog=function(){liveSaveLog();downloadCSV(logToCSV(S.log),'playl
 // ========== 时间推进 & 支线结算 ==========
 function advanceTime(mins, noDice){
   S.time-=mins;
+  updateBGM();
   // 已签约支线（过户中）：到账返还
   S.lanes.forEach(l=>l.remain-=mins);
   S.lanes.filter(l=>l.remain<=0).forEach(l=>{S.cash+=l.ret;S.peak=Math.max(S.peak,S.cash);toast(`🏦 ${l.name} 过户完成，返现到账 +¥${fmtMoney(l.ret)}`);});
@@ -695,7 +624,7 @@ function genShopCards(destKey, onlyStype){
 function render(){
   $('cash').innerHTML='¥'+fmtMoney(S.cash)+'<small> 现金</small>';
   const v=curVip();const vipEl=$('vip');
-  if(v.slots>1){ vipEl.innerHTML=v.name+' · '+v.slots+'线 🏦'; vipEl.style.cursor='pointer'; vipEl.onclick=window.openBankDesk;
+  if(v.slots>1){ vipEl.innerHTML=v.name+' · '+v.slots+'线 🏦'; vipEl.style.cursor='pointer'; vipEl.onclick=window.openBankMenu;
     // [P0银行指引] 首次升级VIP后还没用过银行→标签闪烁
     if(!S._bankUsed && S.bankSearches.length===0 && S.lanes.length===0) vipEl.classList.add('pulse-hint');
     else { vipEl.classList.remove('pulse-hint'); S._bankUsed=true; }
@@ -708,7 +637,7 @@ function render(){
   $('refreshLeft').textContent=S.refresh;
   $('btnRefresh').disabled=S.refresh<=0;
   // 主动贷款按钮：银行解锁后显示
-  $('btnLoan').style.display = curVip().slots>1 ? 'block' : 'none';
+  // btnLoan已移除
   // ===== 银行团队仪表盘：寻货中 + 过户中，每队状态一目了然 =====
   const le=$('lanes');le.innerHTML='';
   const vip=curVip();
@@ -795,6 +724,8 @@ function render(){
   }
   // 自愈：render 后检查有没有因锁泄漏而卡住的到点寻货
   setTimeout(checkBankReturn,50);
+  updateSceneBG();
+  updateBGM();
 }
 
 // ========== 选目的地 → 选交通 → 移动 ==========
@@ -981,7 +912,7 @@ $('btnRefresh').onclick=function(){
 };
 $('btnRest').onclick=function(){if(S.over)return;logEvent('REST',`消磨时间-${SKIP_COST}分`);if(advanceTime(SKIP_COST))return;if(S.mode==='shop')genShopCards(S.dest,S.curShop);else genDestinations();render();};
 $('btnExport').onclick=function(){exportLiveLog();};
-$('btnLoan').onclick=function(){openLoanDesk();};
+// btnLoan已移除,贷款入口在银行VIP菜单里
 
 // ========== 结算 ==========
 function endGame(){
@@ -1000,6 +931,8 @@ function endGame(){
   logEvent('END',`现金${Math.round(S.cash)} 负债${Math.round(S.debt)} 净资产${netWorth} 峰值${Math.round(S.peak)} ${curVip().name}${S.lanes.length>0?` | ${S.lanes.length}单超时退本金¥${Math.round(refundBody)}(损返现¥${Math.round(lostReturn)})`:''}`);
   console.log('%c=== 本局日志 ===','color:#f0c14b;font-weight:bold');console.table(S.log);
   autoSaveLog(`净¥${fmtMoney(netWorth)} · ${curVip().name} · ${S.turn}步`);
+  const lb=saveToLeaderboard(netWorth);
+  const newAch=checkAchievements(netWorth, false);
   const lost=S.lanes.length;const base=Math.max(1,netWorth);const others=[];
   for(let i=0;i<7;i++)others.push({name:'玩家'+Math.floor(Math.random()*9000+1000),cash:base*rnd(0.3,2.2)});
   others.push({name:'你',cash:netWorth,me:true});others.sort((a,b)=>b.cash-a.cash);
@@ -1026,6 +959,7 @@ function endGame(){
     <div class="rank-list">${others.slice(0,6).map((o,i)=>`<div class="rank-item ${o.me?'me':''}"><span>${i+1}. ${o.name}</span><span>¥${fmtMoney(o.cash)}</span></div>`).join('')}</div>
     <div style="font-size:11px;color:var(--dim);margin:10px 0 4px;text-align:left">💾 已自动保存最近3局（循环覆盖），可导出任意一局：</div>
     ${savedBtns}
+    ${renderAchievements(newAch)}${renderAllAchievements()}${renderLeaderboard(netWorth)}
     <button class="btn" style="background:var(--gold);color:#000;margin-top:6px" onclick="location.reload()">再来一局</button></div>`;
   document.body.appendChild(ov);
 }
@@ -1553,6 +1487,34 @@ function triggerBankruptcy(){
     </div>`;
   document.body.appendChild(ov);
 }
+
+// ========== 银行VIP服务菜单 ==========
+window.openBankMenu=function(){
+  if(S.over)return;
+  const vip=curVip();
+  if(vip.slots<=1){toast('资产还不够，银行还没来电',true);return;}
+  const totalTeams=S.lanes.reduce((s,l)=>s+(l.teams||1),0)+S.bankSearches.length+S.loans.length;
+  const idle=vip.slots-totalTeams;
+  const old=document.getElementById('dlgOverlay');if(old)old.remove();
+  const ov=document.createElement('div');ov.className='overlay';ov.id='dlgOverlay';
+  ov.innerHTML=`<div class="dlg-modal">
+    <div class="dlg-head"><span class="dlg-avatar">🏦</span><span>${vip.name} · 银行VIP服务</span></div>
+    <div class="dlg-body"><div class="dlg-text">尊敬的${vip.name}客户，您有 <span class="hl">${idle}/${vip.slots}</span> 队银行团队空闲。请选择需要的服务：</div></div>
+    <div style="padding:0 16px 16px">
+      <div class="card" onclick="closeDialogue();openBankDesk();" style="margin-bottom:10px;cursor:pointer">
+        <div class="name">🔍 寻找收购标的</div>
+        <div style="font-size:12px;color:var(--dim);margin-top:4px">委托银行团队在市场上寻找大宗资产收购机会。设定目标价位后，团队外出寻货，找到后带回给您谈判。</div>
+      </div>
+      <div class="card" onclick="closeDialogue();openLoanDesk();" style="margin-bottom:10px;cursor:pointer">
+        <div class="name">💰 贷款业务</div>
+        <div style="font-size:12px;color:var(--dim);margin-top:4px">主动贷款备好现金，额度≤净资产×4。<br>⚠️ 每笔贷款占用1队人手 · 免息但计负债 · 杠杆率超${CREDIT_DOWNGRADE}倍触发催收</div>
+      </div>
+    </div>
+    <div class="dlg-choices"><button class="dlg-choice" onclick="closeDialogue()">暂不需要</button></div>
+  </div>`;
+  document.body.appendChild(ov);
+};
+
 // 主界面主动贷款：上限=总资产×4（含在途本金），占1队人手
 window.openLoanDesk=function(){
   if(S.over)return;
@@ -1616,7 +1578,13 @@ window.speedUpLane=function(idx){
 
 // ========== 配置加载（从 ../config/*.json 读取，reload 即生效）==========
 async function loadConfig(){
-  const cfg = (window.__EMBEDDED_CONFIG__ || (()=>{throw new Error('内嵌配置缺失');})());
+  const names=['economy','shops','map','transport','bank'];
+  const cfg={};
+  for(const n of names){
+    const res=await fetch(`config/${n}.json?t=`+Date.now()); // 加时间戳防缓存
+    if(!res.ok) throw new Error(`加载 config/${n}.json 失败 (${res.status})`);
+    cfg[n]=await res.json();
+  }
   // ---- economy → 全局常量 ----
   const e=cfg.economy;
   TOTAL_TIME=e.time.total_minutes; SKIP_COST=e.time.skip_cost; SIGN_COST=e.time.sign_cost;
@@ -1650,6 +1618,7 @@ let LOAN_APPROVE_RATIO=0.7, CFG_START_POS='home';
 // ========== 启动 ==========
 loadConfig().then(()=>{
   S.pos=CFG_START_POS; S.time=TOTAL_TIME; S.cash=START_CASH; S.peak=START_CASH; S.refresh=FREE_REFRESH;
+  initBGM();
   introSequence();
 }).catch(err=>{
   document.body.innerHTML=`<div style="padding:40px;color:#e05a5a;font-family:sans-serif;line-height:1.8">

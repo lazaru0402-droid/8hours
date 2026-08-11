@@ -1,0 +1,172 @@
+{
+  "_说明": "银行系统。由 md2json 从 docs/04_银行与谈判.md 生成。",
+  "bank_deals": [
+    {
+      "name": "代收房租",
+      "est_min": 1000000,
+      "est_max": 4000000,
+      "transfer_min": 20,
+      "transfer_max": 30,
+      "rebate_min": 2.1,
+      "rebate_max": 2.4
+    },
+    {
+      "name": "店铺盘活转手",
+      "est_min": 3000000,
+      "est_max": 12000000,
+      "transfer_min": 26,
+      "transfer_max": 38,
+      "rebate_min": 2.2,
+      "rebate_max": 2.5
+    },
+    {
+      "name": "收购店铺",
+      "est_min": 10000000,
+      "est_max": 40000000,
+      "transfer_min": 34,
+      "transfer_max": 48,
+      "rebate_min": 2.4,
+      "rebate_max": 2.7
+    },
+    {
+      "name": "收购连锁门店",
+      "est_min": 30000000,
+      "est_max": 120000000,
+      "transfer_min": 40,
+      "transfer_max": 56,
+      "rebate_min": 2.5,
+      "rebate_max": 2.8
+    },
+    {
+      "name": "收购游艇",
+      "est_min": 100000000,
+      "est_max": 500000000,
+      "transfer_min": 45,
+      "transfer_max": 68,
+      "rebate_min": 2.7,
+      "rebate_max": 3
+    },
+    {
+      "name": "收购豪宅庄园",
+      "est_min": 400000000,
+      "est_max": 2000000000,
+      "transfer_min": 60,
+      "transfer_max": 88,
+      "rebate_min": 2.9,
+      "rebate_max": 3.3
+    },
+    {
+      "name": "科技公司股份",
+      "est_min": 1500000000,
+      "est_max": 8000000000,
+      "transfer_min": 70,
+      "transfer_max": 100,
+      "rebate_min": 3,
+      "rebate_max": 3.4
+    },
+    {
+      "name": "上市公司控股权",
+      "est_min": 6000000000,
+      "est_max": 40000000000,
+      "transfer_min": 85,
+      "transfer_max": 120,
+      "rebate_min": 3.1,
+      "rebate_max": 3.5
+    },
+    {
+      "name": "城市综合体地皮",
+      "est_min": 30000000000,
+      "est_max": 150000000000,
+      "transfer_min": 95,
+      "transfer_max": 130,
+      "rebate_min": 3.2,
+      "rebate_max": 3.6
+    },
+    {
+      "name": "跨国集团并购",
+      "est_min": 100000000000,
+      "est_max": 600000000000,
+      "transfer_min": 110,
+      "transfer_max": 150,
+      "rebate_min": 3.3,
+      "rebate_max": 3.8
+    },
+    {
+      "name": "港口矿业权",
+      "est_min": 400000000000,
+      "est_max": 3000000000000,
+      "transfer_min": 120,
+      "transfer_max": 160,
+      "rebate_min": 3.4,
+      "rebate_max": 4
+    }
+  ],
+  "vip": [
+    {
+      "name": "普通人",
+      "unlock": 0,
+      "slots": 1
+    },
+    {
+      "name": "🥇VIP",
+      "unlock": 100000000,
+      "slots": 4
+    },
+    {
+      "name": "🖤黑卡",
+      "unlock": 500000000,
+      "slots": 6
+    },
+    {
+      "name": "👑传奇",
+      "unlock": 5000000000,
+      "slots": 8
+    }
+  ],
+  "bank_calls": [
+    {
+      "threshold": 100000000,
+      "tier": "🥇VIP",
+      "slots": 4,
+      "title": "私人银行来电"
+    },
+    {
+      "threshold": 500000000,
+      "tier": "🖤黑卡",
+      "slots": 6,
+      "title": "环球私行来电"
+    },
+    {
+      "threshold": 5000000000,
+      "tier": "👑传奇",
+      "slots": 8,
+      "title": "央行级专属通道"
+    }
+  ],
+  "sellers": {
+    "company": {
+      "label": "🏢 正规公司",
+      "cap_min": 1.1,
+      "cap_max": 1.5,
+      "ask_min": 1,
+      "ask_max": 1.25,
+      "flake_chance": 0
+    },
+    "personal": {
+      "label": "🧍 个人卖家",
+      "cap_min": 1.5,
+      "cap_max": 2,
+      "ask_min": 0.9,
+      "ask_max": 1.35,
+      "flake_chance": 0.35
+    },
+    "distressed": {
+      "label": "🕶️ 急售/破产清算",
+      "cap_min": 3,
+      "cap_max": 4,
+      "ask_min": 0.7,
+      "ask_max": 1.05,
+      "flake_chance": 0
+    }
+  }
+}
