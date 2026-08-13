@@ -14,7 +14,9 @@
   .hud-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
   .cash{font-size:24px;font-weight:800;color:var(--gold);}
   .cash small{font-size:12px;color:var(--dim);font-weight:500;}
-  .vip{font-size:12px;padding:3px 9px;border-radius:20px;border:1px solid var(--gold);color:var(--gold);}
+  .vip{font-size:12px;padding:6px 12px;border-radius:10px;border:1px solid var(--gold);color:#000;background:linear-gradient(180deg,#f7d774,#d9a93a);font-weight:700;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.4);transition:transform .08s,box-shadow .12s;user-select:none;white-space:nowrap;}
+  .vip:hover{box-shadow:0 3px 10px rgba(240,193,75,.5),inset 0 1px 0 rgba(255,255,255,.5);}
+  .vip:active{transform:translateY(1px);box-shadow:0 1px 3px rgba(0,0,0,.4);}
   .loc{font-size:12px;color:var(--blue);margin-top:2px;}
   .timebar-wrap{height:8px;background:#0a0d12;border-radius:6px;overflow:hidden;margin-top:6px;}
   .timebar{height:100%;background:linear-gradient(90deg,var(--green),var(--gold));transition:width .3s;}
@@ -102,7 +104,7 @@
   <div id="hud">
     <div class="hud-row">
       <div class="cash" id="cash">¥0<small> 现金</small></div>
-      <div class="vip" id="vip">普通人 · 1线</div>
+      <div class="vip" id="vip">🏦 银行VIP服务</div>
     </div>
     <div class="loc" id="loc">📍 当前位置：家</div>
     <div class="timebar-wrap"><div class="timebar" id="timebar" style="width:100%"></div></div>
@@ -114,7 +116,6 @@
     <button class="btn refresh" id="btnRefresh">🔄 换一批 (<span id="refreshLeft">3</span>)</button>
     <button class="btn" id="btnRest" style="display:none">⏳ 消磨时间(−5分)</button>
     
-    <button class="btn" id="btnExport" style="font-size:12px">📊 导出本局日志</button>
     <button class="btn" id="btnFeedback" style="font-size:12px" onclick="openFeedback()">💬 联系作者</button>
   </div>
 </div>
@@ -394,6 +395,20 @@ function renderAllAchievements(){
   });
   h+='</div></div>';
   return h;
+}
+// 本局达成的成就（依据本局战绩计算，独立于历史解锁状态，用于净资产下方醒目展示）
+function getRunAchievement(netWorth, isBankrupt){
+  if(isBankrupt) return ACHIEVEMENTS.find(a=>a.id==='bankrupt')||null;
+  const tiers=ACHIEVEMENTS.filter(a=>a.threshold).sort((x,y)=>y.threshold-x.threshold);
+  return tiers.find(a=>netWorth>=a.threshold)||null;
+}
+function renderRunAchievement(netWorth, isBankrupt){
+  const a=getRunAchievement(netWorth, isBankrupt);
+  if(!a) return `<div style="margin:6px auto 4px;text-align:center;font-size:13px;color:var(--dim)">本局成就：差一点点，再冲一次！</div>`;
+  return `<div style="margin:8px auto 6px;max-width:300px;text-align:center;background:linear-gradient(180deg,rgba(240,193,75,.16),rgba(240,193,75,.05));border:1px solid var(--gold);border-radius:12px;padding:10px 12px">
+    <div style="font-size:12px;color:var(--dim);letter-spacing:1px">🏅 本局达成成就</div>
+    <div style="font-size:20px;font-weight:800;color:var(--gold);margin-top:3px">${a.icon} ${a.name}</div>
+  </div>`;
 }
 
 
@@ -680,12 +695,16 @@ function genShopCards(destKey, onlyStype){
 function render(){
   $('cash').innerHTML='¥'+fmtMoney(S.cash)+'<small> 现金</small>';
   const v=curVip();const vipEl=$('vip');
-  if(v.slots>1){ vipEl.innerHTML=v.name+' · '+v.slots+'线 🏦'; vipEl.style.cursor='pointer'; vipEl.onclick=window.openBankMenu;
+  vipEl.textContent='🏦 银行VIP服务';
+  vipEl.style.cursor='pointer';
+  vipEl.onclick=window.openBankMenu;
+  if(v.slots>1){
     // [P0银行指引] 首次升级VIP后还没用过银行→标签闪烁
     if(!S._bankUsed && S.bankSearches.length===0 && S.lanes.length===0) vipEl.classList.add('pulse-hint');
     else { vipEl.classList.remove('pulse-hint'); S._bankUsed=true; }
+  } else {
+    vipEl.classList.remove('pulse-hint');
   }
-  else { vipEl.textContent=v.name+' · '+v.slots+'线'; vipEl.onclick=null; }
   $('loc').textContent='📍 当前位置：'+DISTRICTS[S.pos].name;
   $('timebar').style.width=Math.max(0,S.time/TOTAL_TIME*100)+'%';
   $('timeLeft').textContent='剩余 '+Math.max(0,Math.round(S.time))+' 分钟';
@@ -967,7 +986,7 @@ $('btnRefresh').onclick=function(){
   render();
 };
 $('btnRest').onclick=function(){if(S.over)return;logEvent('REST',`消磨时间-${SKIP_COST}分`);if(advanceTime(SKIP_COST))return;if(S.mode==='shop')genShopCards(S.dest,S.curShop);else genDestinations();render();};
-$('btnExport').onclick=function(){exportLiveLog();};
+// 导出功能已关闭（玩家测试期间）—— 原 btnExport 已移除
 // btnLoan已移除,贷款入口在银行VIP菜单里
 
 // ========== 结算 ==========
@@ -987,19 +1006,53 @@ function endGame(){
   logEvent('END',`现金${Math.round(S.cash)} 负债${Math.round(S.debt)} 净资产${netWorth} 峰值${Math.round(S.peak)} ${curVip().name}${S.lanes.length>0?` | ${S.lanes.length}单超时退本金¥${Math.round(refundBody)}(损返现¥${Math.round(lostReturn)})`:''}`);
   console.log('%c=== 本局日志 ===','color:#f0c14b;font-weight:bold');console.table(S.log);
   autoSaveLog(`净¥${fmtMoney(netWorth)} · ${curVip().name} · ${S.turn}步`);
-  const lb=saveToLeaderboard(netWorth);
-  const newAch=checkAchievements(netWorth, false);
-  const lost=S.lanes.length;
-  const saved=getSavedLogs();
-  const savedBtns=saved.slice().reverse().map((s,ri)=>{const realIdx=saved.length-1-ri;const isNow=ri===0;
-    return `<button class="btn" style="background:${isNow?'var(--blue)':'var(--panel2)'};margin-bottom:6px;font-size:13px" onclick="exportSavedLog(${realIdx})">📊 导出${isNow?'本局':'第'+(ri)+'局前'} · ${s.summary}</button>`;}).join('');
+  saveToLeaderboard(netWorth);
+  checkAchievements(netWorth, false);
+  // ★ 先弹「输入名字」门槛：在玩家确认名字之前，绝不显示任何结算数据
+  showNameGate(netWorth, S.lanes.length);
+}
+
+// 名字输入门槛：结算数据在此之前完全不可见
+function showNameGate(netWorth, lost){
+  const saved=getPlayerName();
+  const ov=document.createElement('div');ov.className='overlay';ov.id='nameGate';
+  ov.innerHTML=`<div class="modal" style="text-align:center">
+    <h2>⏰ 8小时到！</h2>
+    <div style="font-size:15px;color:var(--txt);margin:10px 0 4px">冲刺结束，先留下你的名号——</div>
+    <div style="font-size:13px;color:var(--dim);margin-bottom:14px">它将出现在全球排行榜上（最多 12 个汉字）</div>
+    <input id="ngName" maxlength="12" value="${saved.replace(/"/g,'&quot;')}" placeholder="输入你的名字" style="width:100%;padding:12px;border-radius:10px;background:var(--panel2);border:1px solid var(--gold);color:var(--txt);font-size:16px;text-align:center;box-sizing:border-box">
+    <div id="ngCount" style="font-size:12px;color:var(--dim);margin:6px 0 2px">0 / 12</div>
+    <button class="btn" id="ngConfirm" style="background:var(--gold);color:#000;margin-top:8px;font-size:16px">确定，查看结算</button>
+    <div style="font-size:11px;color:var(--dim);margin-top:8px">不填直接点确定，将随机分配「玩家XXXX」编号</div>
+  </div>`;
+  document.body.appendChild(ov);
+  const inp=document.getElementById('ngName');
+  const cnt=document.getElementById('ngCount');
+  const upd=()=>{ cnt.textContent=inp.value.length+' / 12'; };
+  inp.addEventListener('input',upd); upd();
+  inp.focus();
+  const confirm=()=>{
+    let nm=inp.value.trim().slice(0,12);
+    if(!nm){ nm='玩家'+Math.floor(Math.random()*9000+1000); } // 不输入→数字编号
+    setPlayerName(nm);
+    ov.remove();
+    showSettlement(netWorth, lost, nm);
+  };
+  document.getElementById('ngConfirm').onclick=confirm;
+  inp.addEventListener('keydown',e=>{ if(e.key==='Enter') confirm(); });
+}
+
+// 真正的结算界面（玩家确认名字后才渲染）
+function showSettlement(netWorth, lost, playerName){
   // 名下资产清单
   const assetRows = S.assets.length>0
     ? S.assets.map(a=>`<div class="rank-item"><span>${NEGOTIATION[a.seller]?NEGOTIATION[a.seller].label.slice(0,2):'🏢'} ${a.name}</span><span style="color:var(--gold)">值¥${fmtMoney(a.value)}</span></div>`).join('')
     : '<div style="color:var(--dim);font-size:12px;padding:8px">（本局没有通过银行收购任何资产）</div>';
   const ov=document.createElement('div');ov.className='overlay';
   ov.innerHTML=`<div class="modal"><h2>⏰ 8小时返现冲刺 · 结算</h2>
+    <div style="font-size:13px;color:var(--blue);text-align:center;margin-bottom:2px">玩家：${playerName.replace(/</g,'&lt;')}</div>
     <div class="big">净资产 ¥${fmtMoney(netWorth)}</div>
+    ${renderRunAchievement(netWorth, false)}
     <div style="font-size:13px;color:var(--dim);text-align:center;margin-bottom:8px">
       现金 ¥${fmtMoney(S.cash)} ${S.debt>0?`− 负债 <span style="color:#e05a5a">¥${fmtMoney(S.debt)}</span>`:''} = 实际资产 ¥${fmtMoney(netWorth)}
     </div>
@@ -1010,9 +1063,7 @@ function endGame(){
     <div class="rank-list">${assetRows}</div>
     <div style="font-size:12px;color:var(--blue);text-align:left;margin:10px 0 2px">🏆 全球现金榜 TOP 10：</div>
     <div class="rank-list" id="globalLbBox"><div style="color:var(--dim);font-size:12px;padding:8px">加载中…</div></div>
-    <div style="font-size:11px;color:var(--dim);margin:10px 0 4px;text-align:left">💾 已自动保存最近3局（循环覆盖），可导出任意一局：</div>
-    ${savedBtns}
-    ${renderAchievements(newAch)}${renderAllAchievements()}${renderLeaderboard(netWorth)}
+    ${renderAllAchievements()}${renderLeaderboard(netWorth)}
     <button class="btn" style="background:var(--panel2);color:var(--blue);margin-top:6px;border:1px solid var(--blue)" onclick="openFeedback(${netWorth})">💬 联系作者 / 提交反馈</button>
     <button class="btn" style="background:var(--gold);color:#000;margin-top:6px" onclick="location.reload()">再来一局</button></div>`;
   document.body.appendChild(ov);
@@ -1602,13 +1653,13 @@ function triggerBankruptcy(){
   const ov=document.createElement('div');ov.className='overlay';
   ov.innerHTML=`<div class="modal"><h2 style="color:#e05a5a">💥 破产清算</h2>
     <div class="big" style="color:#e05a5a">资不抵债</div>
+    ${renderRunAchievement(netWorth, true)}
     <div style="font-size:13px;color:var(--dim);text-align:center;margin-bottom:8px">
       现金 ¥${fmtMoney(S.cash)} 无法覆盖负债 ¥${fmtMoney(S.debt)}<br>银行强制清算，游戏结束。
     </div>
     <p style="text-align:center">历史峰值 ¥${fmtMoney(S.peak)} · ${curVip().name} · 共${S.turn}步<br>
     <span style="color:#e05a5a">⚠️ 过度举债的教训：杠杆是把双刃剑</span></p>
     ${renderAchievements(newAch)}<button class="btn" style="background:var(--blue);margin-top:10px" onclick="location.reload()">🔄 再来一局</button>
-    <button class="btn" style="margin-top:6px" onclick="exportLiveLog()">📊 导出本局日志</button>
     </div>`;
   document.body.appendChild(ov);
 }
