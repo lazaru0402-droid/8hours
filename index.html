@@ -549,6 +549,9 @@ function advanceTime(mins, noDice){
     }
   }
   if(S.time<=0){S.time=0;endGame();return true;}
+  // [修复] 过户大额返现到账可能让峰值跳档 → 这里补触发银行来电，让称号/来电与线数同步
+  // （旧逻辑只在"买入后"检查来电，返现到账这条路径会漏，导致"线数升了却没来电"）
+  if(!S.negotiating && checkBankCall()) return false; // 弹了来电窗，寻货返回下回合再检查，避免弹窗叠加
   checkBankReturn();
   return false;
 }
@@ -1206,19 +1209,20 @@ function introSequence(){
 // ========== 银行来电事件（资产达标强制触发）==========
 function checkBankCall(){
   if(S.negotiating) return false;         // [修] 正在谈判(寻货返回弹窗)时不抢弹VIP升级窗,避免弹窗叠加破坏谈判
-  for(const call of BANK_CALLS){
-    if(S.peak>=call.threshold && !S.bankCalled[call.threshold]){
-      S.bankCalled[call.threshold]=true;
-      triggerBankCall(call);
-      return true; // 一次只弹一个
-    }
-  }
-  return false;
+  // [修复"称号/来电滞后于线数"] 一笔大额返现可能让峰值一次跨过多档。
+  // curVip() 按峰值即时给最高档线数，但旧逻辑每次只补播一档 → 出现"8线却还没到传奇称号"。
+  // 现在：收集所有已跨过但未播的档位，全部标记为已播，只弹【最高一档】来电（称号=最高档），一步同步到位。
+  const pending = BANK_CALLS.filter(c => S.peak>=c.threshold && !S.bankCalled[c.threshold]);
+  if(pending.length===0) return false;
+  const firstEver = Object.keys(S.bankCalled).filter(k=>S.bankCalled[k]).length===0; // 补播前是否从未来过电
+  pending.forEach(c => { S.bankCalled[c.threshold]=true; }); // 跨过的档位全部标记，避免以后重复补播
+  const top = pending.reduce((a,b)=> b.threshold>a.threshold ? b : a); // 最高档
+  triggerBankCall(top, firstEver);
+  return true; // 弹了一个（最高档）
 }
-function triggerBankCall(call){
-  // 首次来电 = 之前从未触发过任何银行来电（不再写死线数，适配任意档位配置）
-  const calledCount = Object.keys(S.bankCalled).filter(k=>S.bankCalled[k]).length;
-  const firstTime = calledCount<=1; // 本次刚标记了1个，≤1 说明这是第一次
+function triggerBankCall(call, firstEver){
+  // firstEver 由调用方判定：本次补播之前是否从未触发过任何银行来电
+  const firstTime = !!firstEver;
   playDialogue(firstTime?'bank_call_first':'bank_call_upgrade', {
     title: call.title, threshold: fmtMoney(call.threshold), tier: call.tier,
     slots: call.slots, parallel: call.slots, // parallel=总线数(寻货/过户/贷款共用,不再减1)
