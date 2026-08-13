@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>财富人生 · 原型 v0.3（地图版）</title>
+<title>8小时返现冲刺</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   :root{--bg:#0d1117;--panel:#161b22;--panel2:#1c2330;--line:#2d333b;--gold:#f0c14b;--green:#3fb950;--red:#f85149;--blue:#58a6ff;--txt:#e6edf3;--dim:#8b949e;}
@@ -115,12 +115,68 @@
     <button class="btn" id="btnRest" style="display:none">⏳ 消磨时间(−5分)</button>
     
     <button class="btn" id="btnExport" style="font-size:12px">📊 导出本局日志</button>
+    <button class="btn" id="btnFeedback" style="font-size:12px" onclick="openFeedback()">💬 联系作者</button>
   </div>
 </div>
 <div class="toast" id="toast"></div>
 
 <script src="dialogue.js"></script>
 <script>
+// ========== Supabase 云端后端（排行榜 + 反馈）==========
+const SB_URL = 'https://dtbkdijnlweirgvpumkt.supabase.co';
+const SB_KEY = 'sb_publishable_hH1wv18qzj-AkpMkYBtrIQ_L0RsJ3_7';
+// 玩家昵称：本地记住，下次沿用
+function getPlayerName(){ return localStorage.getItem('cashback_playername') || ''; }
+function setPlayerName(n){ try{ localStorage.setItem('cashback_playername', n); }catch(e){} }
+// 通用请求封装
+async function sbFetch(path, opts){
+  const o = opts || {};
+  o.headers = Object.assign({
+    'apikey': SB_KEY,
+    'Authorization': 'Bearer ' + SB_KEY,
+    'Content-Type': 'application/json'
+  }, o.headers||{});
+  const res = await fetch(SB_URL + '/rest/v1/' + path, o);
+  if(!res.ok) throw new Error('云端请求失败 ('+res.status+')');
+  const txt = await res.text();
+  return txt ? JSON.parse(txt) : null;
+}
+// 上传本局成绩到云端排行榜
+async function uploadScore(rec){
+  return sbFetch('leaderboard', {
+    method:'POST',
+    headers:{'Prefer':'return=minimal'},
+    body: JSON.stringify(rec)
+  });
+}
+// 拉取云端排行榜 TOP N（按净资产降序）
+async function fetchTopScores(n){
+  return sbFetch('leaderboard?select=name,net_worth,vip,bankrupt&order=net_worth.desc&limit='+(n||20));
+}
+// 拉取「我这条成绩的全球排名」= 比我高的人数 + 1
+async function fetchMyRank(netWorth){
+  const res = await fetch(SB_URL+'/rest/v1/leaderboard?select=id&net_worth=gt.'+netWorth, {
+    method:'GET',
+    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Prefer':'count=exact','Range':'0-0'}
+  });
+  const cr = res.headers.get('content-range')||''; // 形如 "0-0/42"
+  const total = parseInt((cr.split('/')[1]||'0'),10);
+  return total + 1;
+}
+// 提交反馈到云端
+async function submitFeedback(contact, message, netWorth){
+  return sbFetch('feedback', {
+    method:'POST',
+    headers:{'Prefer':'return=minimal'},
+    body: JSON.stringify({
+      contact: contact||null,
+      message: message,
+      net_worth: (netWorth!=null?Math.round(netWorth):null),
+      user_agent: navigator.userAgent
+    })
+  });
+}
+
 // ========== 全局配置 ==========
 let TOTAL_TIME=480, SKIP_COST=5, FREE_REFRESH=3, SIGN_COST=2, START_CASH=10000;
 
@@ -933,10 +989,7 @@ function endGame(){
   autoSaveLog(`净¥${fmtMoney(netWorth)} · ${curVip().name} · ${S.turn}步`);
   const lb=saveToLeaderboard(netWorth);
   const newAch=checkAchievements(netWorth, false);
-  const lost=S.lanes.length;const base=Math.max(1,netWorth);const others=[];
-  for(let i=0;i<7;i++)others.push({name:'玩家'+Math.floor(Math.random()*9000+1000),cash:base*rnd(0.3,2.2)});
-  others.push({name:'你',cash:netWorth,me:true});others.sort((a,b)=>b.cash-a.cash);
-  const rank=others.findIndex(o=>o.me)+1;
+  const lost=S.lanes.length;
   const saved=getSavedLogs();
   const savedBtns=saved.slice().reverse().map((s,ri)=>{const realIdx=saved.length-1-ri;const isNow=ri===0;
     return `<button class="btn" style="background:${isNow?'var(--blue)':'var(--panel2)'};margin-bottom:6px;font-size:13px" onclick="exportSavedLog(${realIdx})">📊 导出${isNow?'本局':'第'+(ri)+'局前'} · ${s.summary}</button>`;}).join('');
@@ -945,25 +998,97 @@ function endGame(){
     ? S.assets.map(a=>`<div class="rank-item"><span>${NEGOTIATION[a.seller]?NEGOTIATION[a.seller].label.slice(0,2):'🏢'} ${a.name}</span><span style="color:var(--gold)">值¥${fmtMoney(a.value)}</span></div>`).join('')
     : '<div style="color:var(--dim);font-size:12px;padding:8px">（本局没有通过银行收购任何资产）</div>';
   const ov=document.createElement('div');ov.className='overlay';
-  ov.innerHTML=`<div class="modal"><h2>⏰ 8小时结束 · 财富结算</h2>
+  ov.innerHTML=`<div class="modal"><h2>⏰ 8小时返现冲刺 · 结算</h2>
     <div class="big">净资产 ¥${fmtMoney(netWorth)}</div>
     <div style="font-size:13px;color:var(--dim);text-align:center;margin-bottom:8px">
       现金 ¥${fmtMoney(S.cash)} ${S.debt>0?`− 负债 <span style="color:#e05a5a">¥${fmtMoney(S.debt)}</span>`:''} = 实际资产 ¥${fmtMoney(netWorth)}
     </div>
     <p>历史峰值 ¥${fmtMoney(S.peak)} · ${curVip().name} · 共${S.turn}步<br>
     ${lost>0?`<span style="color:var(--gold)">⏰ ${lost}单过户未完成：已退还冻结本金，但超时无返现倍率</span><br>`:''}
-    排名 <b style="color:var(--gold)">第 ${rank} 名</b> / ${others.length}</p>
+    <span id="myRankLine" style="color:var(--gold)">🌐 正在上传成绩、查询全球排名…</span></p>
     <div style="font-size:12px;color:var(--gold);text-align:left;margin:8px 0 2px">🏛️ 名下收购资产（${S.assets.length}项）：</div>
     <div class="rank-list">${assetRows}</div>
-    <div style="font-size:12px;color:var(--blue);text-align:left;margin:10px 0 2px">🏆 现金榜排名：</div>
-    <div class="rank-list">${others.slice(0,6).map((o,i)=>`<div class="rank-item ${o.me?'me':''}"><span>${i+1}. ${o.name}</span><span>¥${fmtMoney(o.cash)}</span></div>`).join('')}</div>
+    <div style="font-size:12px;color:var(--blue);text-align:left;margin:10px 0 2px">🏆 全球现金榜 TOP 10：</div>
+    <div class="rank-list" id="globalLbBox"><div style="color:var(--dim);font-size:12px;padding:8px">加载中…</div></div>
     <div style="font-size:11px;color:var(--dim);margin:10px 0 4px;text-align:left">💾 已自动保存最近3局（循环覆盖），可导出任意一局：</div>
     ${savedBtns}
     ${renderAchievements(newAch)}${renderAllAchievements()}${renderLeaderboard(netWorth)}
+    <button class="btn" style="background:var(--panel2);color:var(--blue);margin-top:6px;border:1px solid var(--blue)" onclick="openFeedback(${netWorth})">💬 联系作者 / 提交反馈</button>
     <button class="btn" style="background:var(--gold);color:#000;margin-top:6px" onclick="location.reload()">再来一局</button></div>`;
   document.body.appendChild(ov);
+  // ---- 异步：上传成绩 + 拉真排行榜（失败不阻塞结算界面）----
+  syncLeaderboard(netWorth);
+}
+
+// 上传本局成绩并渲染全球真排行榜
+async function syncLeaderboard(netWorth){
+  const rankLine = document.getElementById('myRankLine');
+  const lbBox = document.getElementById('globalLbBox');
+  const myName = getPlayerName() || ('玩家'+Math.floor(Math.random()*9000+1000));
+  try{
+    await uploadScore({
+      name: myName,
+      net_worth: Math.round(netWorth),
+      vip: curVip().name,
+      turns: S.turn,
+      peak: Math.round(S.peak),
+      bankrupt: !!S.bankrupt
+    });
+    const [rank, top] = await Promise.all([ fetchMyRank(Math.round(netWorth)), fetchTopScores(10) ]);
+    if(rankLine) rankLine.innerHTML = `🌐 全球排名 <b style="color:var(--gold)">第 ${rank} 名</b>`;
+    if(lbBox){
+      lbBox.innerHTML = top.map((o,i)=>{
+        const isMe = (o.net_worth===Math.round(netWorth) && o.name===myName);
+        const medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'.';
+        return `<div class="rank-item ${isMe?'me':''}"><span>${medal} ${o.name}${o.bankrupt?' 💀':''}</span><span>¥${fmtMoney(o.net_worth)}</span></div>`;
+      }).join('') || '<div style="color:var(--dim);font-size:12px;padding:8px">还没有人上榜，你就是第一个！</div>';
+    }
+  }catch(e){
+    if(rankLine) rankLine.innerHTML = '🌐 <span style="color:var(--dim)">排行榜连接失败（离线也能玩，成绩已存本地）</span>';
+    if(lbBox) lbBox.innerHTML = '<div style="color:var(--dim);font-size:12px;padding:8px">云端排行榜暂时不可用</div>';
+    console.warn('排行榜同步失败', e);
+  }
 }
 window.exportLog=exportLog;
+window.syncLeaderboard=syncLeaderboard;
+
+// ========== 联系作者 / 提交反馈 ==========
+window.openFeedback=function(netWorth){
+  const savedName = getPlayerName();
+  const ov=document.createElement('div');ov.className='overlay';ov.id='fbOverlay';
+  ov.innerHTML=`<div class="modal" style="text-align:left">
+    <h2 style="text-align:center">💬 联系作者</h2>
+    <p style="text-align:center;font-size:13px">有 bug、建议、想说的话都可以告诉我，我会看到每一条 🙏</p>
+    <div style="margin:14px 0 4px;font-size:13px;color:var(--dim)">你的昵称（会显示在排行榜上，选填）</div>
+    <input id="fbName" maxlength="20" value="${savedName.replace(/"/g,'&quot;')}" placeholder="无名玩家" style="width:100%;padding:10px;border-radius:8px;background:var(--panel2);border:1px solid var(--line);color:var(--txt);font-size:14px">
+    <div style="margin:12px 0 4px;font-size:13px;color:var(--dim)">联系方式（微信/QQ/邮箱，选填，方便我回复你）</div>
+    <input id="fbContact" maxlength="60" placeholder="选填" style="width:100%;padding:10px;border-radius:8px;background:var(--panel2);border:1px solid var(--line);color:var(--txt);font-size:14px">
+    <div style="margin:12px 0 4px;font-size:13px;color:var(--dim)">反馈内容 *</div>
+    <textarea id="fbMsg" maxlength="1000" rows="4" placeholder="说点什么…" style="width:100%;padding:10px;border-radius:8px;background:var(--panel2);border:1px solid var(--line);color:var(--txt);font-size:14px;resize:vertical"></textarea>
+    <div id="fbHint" style="font-size:12px;min-height:18px;margin-top:6px;text-align:center"></div>
+    <button class="btn" id="fbSubmit" style="background:var(--gold);color:#000;margin-top:6px">提交反馈</button>
+    <button class="btn" style="background:var(--panel2);margin-top:8px" onclick="document.getElementById('fbOverlay').remove()">取消</button>
+  </div>`;
+  document.body.appendChild(ov);
+  const nameEl=document.getElementById('fbName');
+  if(savedName) nameEl.value=savedName;
+  document.getElementById('fbSubmit').onclick=async function(){
+    const msg=document.getElementById('fbMsg').value.trim();
+    const hint=document.getElementById('fbHint');
+    if(!msg){ hint.style.color='var(--red)'; hint.textContent='请先写点反馈内容～'; return; }
+    const nm=nameEl.value.trim();
+    if(nm) setPlayerName(nm); // 记住昵称，下次排行榜沿用
+    this.disabled=true; hint.style.color='var(--blue)'; hint.textContent='提交中…';
+    try{
+      await submitFeedback(document.getElementById('fbContact').value.trim(), msg, (typeof netWorth==='number'?netWorth:null));
+      hint.style.color='var(--green)'; hint.textContent='✅ 已收到，谢谢你的反馈！';
+      setTimeout(()=>{const o=document.getElementById('fbOverlay');if(o)o.remove();},1200);
+    }catch(e){
+      this.disabled=false; hint.style.color='var(--red)'; hint.textContent='❌ 提交失败，请检查网络后重试';
+      console.warn('反馈提交失败',e);
+    }
+  };
+};
 
 // ========== 对话引擎 ==========
 // 打字机效果显示一段对话，带若干选项
@@ -1576,7 +1701,7 @@ window.speedUpLane=function(idx){
   render();
 };
 
-// ========== 配置加载（从 ../config/*.json 读取，reload 即生效）==========
+// ========== 配置加载（从 config/*.json 读取，reload 即生效）==========
 async function loadConfig(){
   const names=['economy','shops','map','transport','bank'];
   const cfg={};
