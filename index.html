@@ -104,7 +104,10 @@
   <div id="hud">
     <div class="hud-row">
       <div class="cash" id="cash">¥0<small> 现金</small></div>
-      <div class="vip" id="vip">🏦 银行VIP服务</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button id="btnMute" onclick="toggleMute()" title="点击关闭音乐" style="background:none;border:none;font-size:20px;cursor:pointer;padding:2px 4px;line-height:1">🔊</button>
+        <div class="vip" id="vip" style="display:none">🏦 银行VIP服务</div>
+      </div>
     </div>
     <div class="loc" id="loc">📍 当前位置：家</div>
     <div class="timebar-wrap"><div class="timebar" id="timebar" style="width:100%"></div></div>
@@ -314,7 +317,7 @@ const $=id=>document.getElementById(id);
 const rnd=(a,b)=>a+Math.random()*(b-a);
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 function weightedPick(arr){const total=arr.reduce((s,x)=>s+(x.w||1),0);let r=Math.random()*total;for(const x of arr){r-=(x.w||1);if(r<=0)return x;}return arr[arr.length-1];}
-function fmtMoney(n){n=Math.round(n);if(n>=1e8)return(n/1e8).toFixed(2).replace(/\.?0+$/,'')+'亿';if(n>=1e4)return(n/1e4).toFixed(1).replace(/\.0$/,'')+'万';return n.toLocaleString();}
+function fmtMoney(n){n=Math.round(n);if(n>=1e12)return(n/1e12).toFixed(2).replace(/\.?0+$/,'')+'万亿';if(n>=1e8)return(n/1e8).toFixed(2).replace(/\.?0+$/,'')+'亿';if(n>=1e4)return(n/1e4).toFixed(1).replace(/\.0$/,'')+'万';return n.toLocaleString();}
 function toast(m,bad){const t=$('toast');t.textContent=m;t.className='toast show'+(bad?' bad':'');clearTimeout(t._t);t._t=setTimeout(()=>t.className='toast',1600);}
 function curVip(){let v=VIP[0];for(const x of VIP)if(S.peak>=x.u)v=x;return v;}
 
@@ -419,12 +422,21 @@ function initBGM(){
   bgmAudio=new Audio();
   bgmAudio.loop=true;
   bgmAudio.volume=0.3;
-  // 浏览器要求用户交互后才能播放——首次点击时启动
+  // 读取用户静音偏好
+  try{ if(localStorage.getItem('bgm_muted')==='1'){ bgmMuted=true; S._muted=true; } }catch(e){}
+  updateMuteBtn();
+  // 尝试打开网页即播放；浏览器自动播放策略可能拦截 → 回退到"首次交互启动"
   const startBGM=()=>{
     document.removeEventListener('click',startBGM);
-    updateBGM(true);
+    document.removeEventListener('touchstart',startBGM);
+    document.removeEventListener('keydown',startBGM);
+    if(bgmIdx<0) updateBGM(true);
   };
+  updateBGM(true); // 立即尝试自动播放
+  // 兜底：若被拦截(bgmIdx仍<0或音频被暂停)，首次任意交互时启动
   document.addEventListener('click',startBGM);
+  document.addEventListener('touchstart',startBGM);
+  document.addEventListener('keydown',startBGM);
 }
 function getBGMIndex(){
   if(S.time>320) return 0;      // 前期(480~320): 舒缓雀跃
@@ -445,8 +457,25 @@ function updateBGM(force){
     if(bgmAudio.volume<0.3){ bgmAudio.volume=Math.min(0.3,bgmAudio.volume+0.02); setTimeout(fadeIn,60); }
     else { bgmFading=false; }
   };
-  if(bgmIdx<0||force){ bgmAudio.src=BGM_TRACKS[idx];bgmAudio.volume=0;bgmAudio.play().catch(()=>{});bgmIdx=idx;fadeIn(); }
+  if(bgmIdx<0||force){ bgmAudio.src=BGM_TRACKS[idx];bgmAudio.volume=0;if(!S._muted)bgmAudio.play().catch(()=>{});bgmIdx=idx;if(!S._muted)fadeIn();else{bgmFading=false;} }
   else fadeOut();
+}
+// ========== 静音开关 ==========
+let bgmMuted=false;
+function toggleMute(){
+  bgmMuted=!bgmMuted;
+  S._muted=bgmMuted;
+  if(bgmAudio){
+    if(bgmMuted){ bgmAudio.pause(); }
+    else { bgmAudio.volume=0.3; bgmAudio.play().catch(()=>{}); }
+  }
+  updateMuteBtn();
+  try{ localStorage.setItem('bgm_muted', bgmMuted?'1':'0'); }catch(e){}
+}
+function updateMuteBtn(){
+  const b=$('btnMute'); if(!b) return;
+  b.textContent = bgmMuted ? '🔇' : '🔊';
+  b.title = bgmMuted ? '音乐已关闭，点击开启' : '点击关闭音乐';
 }
 
 
@@ -568,7 +597,7 @@ function checkBankReturn(){
 // [先见谁] 汇总所有到点标的,让玩家选先见谁
 function presentBankReturns(ready){
   // 先给每个到点标的生成 deal(用于展示价格/身份),缓存到 bs.deal
-  const maxTarget=Math.max(Math.round(S.cash*10),100000);
+  const maxTarget=Math.max(Math.round(S.cash*5),100000);
   ready.forEach(bs=>{ if(!bs.deal) bs.deal=generateBankDeal(bs.target,maxTarget); });
   // 高铁隧道漏接:整批延后重拨(仅当移动中在高铁上,极少见)
   if(S.transport&&S.transport.key==='hsr'&&Math.random()<0.7){
@@ -698,14 +727,18 @@ function genShopCards(destKey, onlyStype){
 function render(){
   $('cash').innerHTML='¥'+fmtMoney(S.cash)+'<small> 现金</small>';
   const v=curVip();const vipEl=$('vip');
-  vipEl.textContent='🏦 银行VIP服务';
-  vipEl.style.cursor='pointer';
-  vipEl.onclick=window.openBankMenu;
   if(v.slots>1){
+    // 银行已来电(峰值达标解锁VIP)→ 显示银行入口
+    vipEl.style.display='';
+    vipEl.textContent='🏦 银行VIP服务';
+    vipEl.style.cursor='pointer';
+    vipEl.onclick=window.openBankMenu;
     // [P0银行指引] 首次升级VIP后还没用过银行→标签闪烁
     if(!S._bankUsed && S.bankSearches.length===0 && S.lanes.length===0) vipEl.classList.add('pulse-hint');
     else { vipEl.classList.remove('pulse-hint'); S._bankUsed=true; }
   } else {
+    // 银行还没来电 → 完全隐藏入口，玩家看不到
+    vipEl.style.display='none';
     vipEl.classList.remove('pulse-hint');
   }
   $('loc').textContent='📍 当前位置：'+DISTRICTS[S.pos].name;
@@ -826,7 +859,7 @@ window.chooseDest=function(destKey){
     const fee=Math.round(tmin*tp.cost);
     const waitTxt = '';
     opts+=`<div class="trans-opt" onclick="doMove('${destKey}',${i})">
-      <div><div class="t-name">${tp.name}</div><div class="t-sub">${tp.sub}</div></div>
+      <div><div class="t-name">${tp.name}</div></div>
       <div class="t-right"><div class="time-cost">${tmin}分钟</div><div style="color:var(--dim)">${fee>0?'¥'+fmtMoney(fee):'免费'}</div>${waitTxt}</div>
     </div>`;
   });
@@ -1238,7 +1271,7 @@ window.openBankDesk=function(guided){
   const totalTeams=S.lanes.reduce((s,l)=>s+(l.teams||1),0)+S.bankSearches.length+S.loans.length;
   if(totalTeams>=vip.slots){toast('银行团队全忙，等一单完成或过户',true);return;}
   const cash=S.cash;
-  const maxTarget=Math.min(1e13, Math.max(Math.round(cash*10),100000)); // 滑条上限=min(现金×10, 10万亿)
+  const maxTarget=Math.max(Math.round(cash*5),100000); // 滑条上限=现金×5（加满贷款80%+自备20%仍付得起的真实上限；拉满+波动仍可能违约→保留破产风险）
   const step=Math.max(1,Math.round(maxTarget/500));
   let target=Math.round(cash*0.2); // 初值=资产20%
   const idle=vip.slots-totalTeams;
@@ -1259,7 +1292,7 @@ window.openBankDesk=function(guided){
     <div class="nego-info" id="hiWarn" style="color:#e0a54a;display:${hiWarn(target)?'block':'none'}">\u26a0\ufe0f 此标的可能超出您 VIP 团队的常规能力，寻找起来或需更多时间。</div>
     <div class="nego-slider-wrap">
       <input type="range" id="tgtSlider" min="0" max="${maxTarget}" value="${target}" step="${step}" class="nego-slider">
-      <div class="nego-range"><span>\u00a50</span><span>\u00a5${fmtMoney(maxTarget)}（资产×10）</span></div>
+      <div class="nego-range"><span>\u00a50</span><span>\u00a5${fmtMoney(maxTarget)}（现金×5）</span></div>
     </div>
     <div style="text-align:center;margin:6px 0">
       <button class="btn" id="tgtMaxNoDelay" style="font-size:13px;background:var(--panel2)">\u26a1 设为 VIP 团队能力上限金额 \u00a5${fmtMoney(hiThreshold)}</button>
@@ -1360,7 +1393,7 @@ function afterNegotiation(){
 }
 function bankReturns(bs){
   if(!bs||bs.remain>0)return;
-  const maxTarget=Math.max(Math.round(S.cash*10),100000);
+  const maxTarget=Math.max(Math.round(S.cash*5),100000);
   if(!bs.deal) bs.deal=generateBankDeal(bs.target,maxTarget);
   const deal=bs.deal; deal._bsId=bs.id;
   // 高铁隧道：70%漏接
