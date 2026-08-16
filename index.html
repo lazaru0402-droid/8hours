@@ -168,6 +168,17 @@ async function fetchMyRank(netWorth){
   const total = parseInt((cr.split('/')[1]||'0'),10);
   return total + 1;
 }
+// 拉取「全球已游玩总人次」用于生成玩家编号（第 N+1 个游玩者）
+async function fetchPlayerOrdinal(){
+  const res = await fetch(SB_URL+'/rest/v1/leaderboard?select=id', {
+    method:'GET',
+    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Prefer':'count=exact','Range':'0-0'}
+  });
+  const cr = res.headers.get('content-range')||''; // "0-0/N"
+  const total = parseInt((cr.split('/')[1]||'0'),10);
+  if(!Number.isFinite(total)) throw new Error('bad count');
+  return total + 1; // 你是第 total+1 个游玩者
+}
 // 提交反馈到云端
 async function submitFeedback(contact, message, netWorth){
   return sbFetch('feedback', {
@@ -1065,17 +1076,27 @@ function showNameGate(netWorth, lost){
     <input id="ngName" maxlength="12" value="${saved.replace(/"/g,'&quot;')}" placeholder="输入你的名字" style="width:100%;padding:12px;border-radius:10px;background:var(--panel2);border:1px solid var(--gold);color:var(--txt);font-size:16px;text-align:center;box-sizing:border-box">
     <div id="ngCount" style="font-size:12px;color:var(--dim);margin:6px 0 2px">0 / 12</div>
     <button class="btn" id="ngConfirm" style="background:var(--gold);color:#000;margin-top:8px;font-size:16px">确定，查看结算</button>
-    <div style="font-size:11px;color:var(--dim);margin-top:8px">不填直接点确定，将随机分配「玩家XXXX」编号</div>
+    <div id="ngHint" style="font-size:11px;color:var(--dim);margin-top:8px">不填直接点确定，将使用为你分配的编号</div>
   </div>`;
   document.body.appendChild(ov);
   const inp=document.getElementById('ngName');
   const cnt=document.getElementById('ngCount');
+  const hint=document.getElementById('ngHint');
   const upd=()=>{ cnt.textContent=inp.value.length+' / 12'; };
   inp.addEventListener('input',upd); upd();
   inp.focus();
+  // 默认编号：第 N 个游玩者 → 「玩家#0042」。异步取，取不到回退随机4位。
+  let defaultName='玩家'+Math.floor(Math.random()*9000+1000); // 先给个兜底，避免联网前确定时无值
+  if(!saved){
+    fetchPlayerOrdinal().then(ord=>{
+      defaultName='玩家#'+String(ord).padStart(4,'0');
+      if(hint) hint.textContent='不填直接点确定，将使用「'+defaultName+'」';
+      if(inp && !inp.value) inp.placeholder=defaultName;
+    }).catch(()=>{ /* 离线/失败：保留随机4位兜底 */ });
+  }
   const confirm=()=>{
     let nm=inp.value.trim().slice(0,12);
-    if(!nm){ nm='玩家'+Math.floor(Math.random()*9000+1000); } // 不输入→数字编号
+    if(!nm){ nm=defaultName; } // 不输入→用分配的编号（联网=玩家#序号，离线=随机4位）
     setPlayerName(nm);
     ov.remove();
     showSettlement(netWorth, lost, nm);
