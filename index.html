@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>8小时返现冲刺</title>
+<link rel="preload" as="audio" href="music/01.mp3">
 <style>
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   :root{--bg:#0d1117;--panel:#161b22;--panel2:#1c2330;--line:#2d333b;--gold:#f0c14b;--green:#3fb950;--red:#f85149;--blue:#58a6ff;--txt:#e6edf3;--dim:#8b949e;}
@@ -418,22 +419,27 @@ function renderRunAchievement(netWorth, isBankrupt){
 // ========== BGM系统（三段按剩余时间切换）==========
 const BGM_TRACKS=['music/01.mp3','music/02.mp3','music/03.mp3'];
 let bgmAudio=null, bgmIdx=-1, bgmFading=false;
+let bgmMuted=false; // 全局静音硬开关（提前声明，避免初始化顺序问题）
 function initBGM(){
   bgmAudio=new Audio();
   bgmAudio.loop=true;
   bgmAudio.volume=0.3;
-  // 读取用户静音偏好
-  try{ if(localStorage.getItem('bgm_muted')==='1'){ bgmMuted=true; S._muted=true; } }catch(e){}
+  bgmAudio.preload='auto'; // 预加载，缓解首播卡顿
+  // 读取用户静音偏好（必须在任何 play 之前，作为全局硬开关）
+  try{ if(localStorage.getItem('bgm_muted')==='1'){ bgmMuted=true; } }catch(e){}
+  S._muted=bgmMuted;
+  bgmAudio.muted=bgmMuted; // 原生静音：无论切歌/淡入淡出都恒定生效
   updateMuteBtn();
   // 尝试打开网页即播放；浏览器自动播放策略可能拦截 → 回退到"首次交互启动"
   const startBGM=()=>{
     document.removeEventListener('click',startBGM);
     document.removeEventListener('touchstart',startBGM);
     document.removeEventListener('keydown',startBGM);
+    // 交互后：确保在播（静音状态由 muted 属性决定，不影响是否 play）
     if(bgmIdx<0) updateBGM(true);
+    else if(bgmAudio.paused && !bgmMuted) bgmAudio.play().catch(()=>{});
   };
   updateBGM(true); // 立即尝试自动播放
-  // 兜底：若被拦截(bgmIdx仍<0或音频被暂停)，首次任意交互时启动
   document.addEventListener('click',startBGM);
   document.addEventListener('touchstart',startBGM);
   document.addEventListener('keydown',startBGM);
@@ -447,27 +453,27 @@ function updateBGM(force){
   const idx=getBGMIndex();
   if(idx===bgmIdx && !force) return;
   if(bgmFading) return;
+  bgmAudio.muted=bgmMuted;      // 双保险：每次进来都同步全局静音状态
   bgmFading=true;
   // 淡出当前
   const fadeOut=()=>{
     if(bgmAudio.volume>0.02){ bgmAudio.volume=Math.max(0,bgmAudio.volume-0.03); setTimeout(fadeOut,50); }
-    else { bgmAudio.pause(); bgmAudio.src=BGM_TRACKS[idx]; bgmAudio.volume=0; bgmAudio.play().catch(()=>{}); bgmIdx=idx; fadeIn(); }
+    else { bgmAudio.pause(); bgmAudio.src=BGM_TRACKS[idx]; bgmAudio.volume=0; bgmAudio.muted=bgmMuted; bgmIdx=idx; bgmAudio.play().catch(()=>{}); fadeIn(); }
   };
   const fadeIn=()=>{
     if(bgmAudio.volume<0.3){ bgmAudio.volume=Math.min(0.3,bgmAudio.volume+0.02); setTimeout(fadeIn,60); }
     else { bgmFading=false; }
   };
-  if(bgmIdx<0||force){ bgmAudio.src=BGM_TRACKS[idx];bgmAudio.volume=0;if(!S._muted)bgmAudio.play().catch(()=>{});bgmIdx=idx;if(!S._muted)fadeIn();else{bgmFading=false;} }
+  if(bgmIdx<0||force){ bgmAudio.src=BGM_TRACKS[idx];bgmAudio.volume=0;bgmAudio.muted=bgmMuted;bgmIdx=idx;bgmAudio.play().catch(()=>{});fadeIn(); }
   else fadeOut();
 }
-// ========== 静音开关 ==========
-let bgmMuted=false;
+// ========== 静音开关（全局硬开关，用原生 muted 属性，切歌/淡入淡出都不影响）==========
 function toggleMute(){
   bgmMuted=!bgmMuted;
   S._muted=bgmMuted;
   if(bgmAudio){
-    if(bgmMuted){ bgmAudio.pause(); }
-    else { bgmAudio.volume=0.3; bgmAudio.play().catch(()=>{}); }
+    bgmAudio.muted=bgmMuted;                 // 核心：原生静音，一次生效全局有效
+    if(!bgmMuted && bgmAudio.paused){ bgmAudio.play().catch(()=>{}); } // 解除静音时若没在播则续上
   }
   updateMuteBtn();
   try{ localStorage.setItem('bgm_muted', bgmMuted?'1':'0'); }catch(e){}
